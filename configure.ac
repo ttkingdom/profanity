@@ -283,16 +283,13 @@ AS_IF([test "x$enable_xscreensaver" != xno],
 dnl feature: pgp
 AM_CONDITIONAL([BUILD_PGP], [false])
 if test "x$enable_pgp" != xno; then
-    AC_CHECK_LIB([gpgme], [main],
-        [AM_CONDITIONAL([BUILD_PGP], [true])
-         AC_DEFINE([HAVE_LIBGPGME], [1], [Have libgpgme])
-         AC_PATH_PROG([GPGME_CONFIG], [gpgme-config], ["failed"])
-         AS_IF([test "x$GPGME_CONFIG" = xfailed],
-            [LIBS="-lgpgme $LIBS"],
-            [LIBS="`$GPGME_CONFIG --libs` $LIBS" AM_CFLAGS="`$GPGME_CONFIG --cflags` $AM_CFLAGS"])],
-        [AS_IF([test "x$enable_pgp" = xyes],
-            [AC_MSG_ERROR([libgpgme is required for pgp support])],
-            [AC_MSG_NOTICE([libgpgme not found, pgp support not enabled])])])
+    AM_CONDITIONAL([BUILD_PGP], [true])
+
+    PKG_CHECK_MODULES([gpgme], [gpgme >= 1.18.0],
+        [LIBS="$gpgme_LIBS $LIBS" AM_CFLAGS="$gpgme_CFLAGS $AM_CFLAGS"],
+        [AC_MSG_NOTICE([gpgme not found, pgp support not enabled])])
+
+    AM_COND_IF([BUILD_PGP], [AC_DEFINE([HAVE_LIBGPGME], [1], [Have pgp])])
 fi
 
 dnl feature: otr
@@ -307,7 +304,7 @@ if test "x$enable_otr" != xno; then
                [AC_MSG_ERROR([libotr >= 4.0 is required for OTR support])],
                [AC_MSG_NOTICE([libotr >= 4.0 not found, OTR support not enabled])])])
 
-   AM_COND_IF([BUILD_OTR], [AC_DEFINE([HAVE_LIBOTR], [1], [Have libotr])])
+    AM_COND_IF([BUILD_OTR], [AC_DEFINE([HAVE_LIBOTR], [1], [Have libotr])])
 fi
 
 dnl feature: pixbuf / used for scaling avatars before uploading via `/avatar set`
@@ -322,19 +319,16 @@ AS_IF([test "x$enable_pixbuf" != xno],
 dnl feature: omemo
 AM_CONDITIONAL([BUILD_OMEMO], [false])
 if test "x$enable_omemo" != xno; then
-   AM_CONDITIONAL([BUILD_OMEMO], [true])
+    AM_CONDITIONAL([BUILD_OMEMO], [true])
     PKG_CHECK_MODULES([libsignal], [libsignal-protocol-c >= 2.3.2],
-        [LIBS="-lsignal-protocol-c $LIBS"],
+        [LIBS="$libsignal_LIBS $LIBS" CFLAGS="$libsignal_CFLAGS/.. $CFLAGS"],
         [AC_MSG_NOTICE([libsignal-protocol-c >= 2.3.2 not found, OMEMO support not enabled])])
 
-    AC_CHECK_LIB([gcrypt], [gcry_md_extract],
-        [LIBS="-lgcrypt $LIBS"],
-        [AM_CONDITIONAL([BUILD_OMEMO], [false])
-         AS_IF([test "x$enable_omemo" = xyes],
-               [AC_MSG_ERROR([gcrypt >= 1.7.0 is required for OMEMO support])],
-               [AC_MSG_NOTICE([gcrypt >= 1.7.0 not found, OMEMO support not enabled])])])
+    PKG_CHECK_MODULES([libgcrypt], [libgcrypt >= 1.7.0],
+        [LIBS="$libgcrypt_LIBS $LIBS" CFLAGS="$libgcrypt_CFLAGS $CFLAGS"],
+        [AC_MSG_NOTICE([libgcrypt >= 1.7.0 not found, OMEMO support not enabled])])
 
-   AM_COND_IF([BUILD_OMEMO], [AC_DEFINE([HAVE_OMEMO], [1], [Have OMEMO])])
+    AM_COND_IF([BUILD_OMEMO], [AC_DEFINE([HAVE_OMEMO], [1], [Have OMEMO])])
 fi
 
 dnl feature: themes
